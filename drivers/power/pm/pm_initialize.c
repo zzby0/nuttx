@@ -86,11 +86,12 @@ void pm_initialize(void)
       gov = pm_stability_governor_initialize();
 #else
       static struct pm_governor_s null;
+
       gov = &null;
 #endif
       pm_set_governor(i, gov);
 
-#if defined(CONFIG_PM_PROCFS)
+#if defined(CONFIG_PM_STAT)
       clock_systime_timespec(&g_pmdomains[i].start);
 #endif
 
