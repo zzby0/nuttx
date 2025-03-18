@@ -31,10 +31,69 @@
 #include <nuttx/init.h>
 #include <nuttx/queue.h>
 #include <nuttx/power/pm.h>
+#include <nuttx/nuttx.h>
 
 #include "pm.h"
 
 #ifdef CONFIG_PM
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: pm_register_callback
+ *
+ * Description:
+ *   This function register callback in order of priority to target domain.
+ *
+ * Input Parameters:
+ *   pdom - Target register domain.
+ *   cb   - An instance of struct pm_callback_s providing the driver
+ *            callback functions.
+ *
+ * Returned Value:
+ *   Zero (OK) on success; otherwise a negated errno value is returned.
+ *
+ ****************************************************************************/
+
+static int pm_register_callback(FAR struct pm_domain_s *pdom,
+                                FAR struct pm_callback_s *cb)
+{
+  FAR dq_queue_t *head = &pdom->registry;
+  FAR dq_entry_t *node;
+
+  /* Refuse to register the same callback twice */
+
+  for (node = dq_peek(head); node; node = dq_next(node))
+    {
+      if (node == &cb->entry)
+        {
+          return -EEXIST;
+        }
+    }
+
+  /* Callbacks with higher prio should be in front of registry dqlist.
+   * The registry is visited from the tail when entering a lower power
+   * state and from the head when restoring.  Search from the tail so that
+   * the callbacks with the same prio keep the register order.
+   */
+
+  for (node = dq_tail(head); node; node = dq_prev(node))
+    {
+      FAR struct pm_callback_s *ncb;
+
+      ncb = container_of(node, struct pm_callback_s, entry);
+      if (cb->prio <= ncb->prio)
+        {
+          dq_addafter(node, &cb->entry, head);
+          return OK;
+        }
+    }
+
+  dq_addfirst(&cb->entry, head);
+  return OK;
+}
 
 /****************************************************************************
  * Public Functions
@@ -61,20 +120,21 @@ int pm_domain_register(int domain, FAR struct pm_callback_s *cb)
 {
   FAR struct pm_domain_s *pdom;
   irqstate_t flags;
+  int ret;
 
-  DEBUGASSERT(domain >= 0 && domain < CONFIG_PM_NDOMAINS);
+  DEBUGASSERT(domain >= 0 && domain < CONFIG_PM_NDOMAINS && cb != NULL);
 
   pdom  = &g_pmdomains[domain];
   flags = spin_lock_irqsave(&pdom->lock);
 
   /* Add the new entry to the end of the list of registered callbacks */
 
-  dq_addlast(&cb->entry, &pdom->registry);
+  ret = pm_register_callback(pdom, cb);
 #if defined (CONFIG_PM_STAT)
   cb->preparefail.state = PM_RESTORE;
 #endif
   spin_unlock_irqrestore(&pdom->lock, flags);
-  return OK;
+  return ret;
 }
 
 #endif /* CONFIG_PM */
