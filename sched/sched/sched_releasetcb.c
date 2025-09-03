@@ -143,7 +143,7 @@ int nxsched_release_tcb(FAR struct tcb_s *tcb, uint8_t ttype)
         {
           if (tcb->dspace->crefs <= 1)
             {
-              kmm_free(tcb->dspace);
+              kmm_delayfree(tcb->dspace);
             }
           else
             {
