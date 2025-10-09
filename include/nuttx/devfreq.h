@@ -54,8 +54,8 @@ struct devfreq_s
   char name[NAME_MAX];
   struct list_node node;
 
-  FAR struct devfreq_governor_s *governor;
-  FAR struct devfreq_driver_s *driver;
+  FAR const struct devfreq_governor_s *governor;
+  FAR const struct devfreq_driver_s *driver;
 
   FAR const uint32_t *freq_table;
   FAR void *governor_data;
@@ -134,8 +134,8 @@ extern "C"
 
 FAR struct devfreq_s *devfreq_register(
                           FAR const char *name,
-                          FAR struct devfreq_governor_s *governor,
-                          FAR struct devfreq_driver_s *driver,
+                          FAR const struct devfreq_governor_s *governor,
+                          FAR const struct devfreq_driver_s *driver,
                           FAR void *priv);
 
 /****************************************************************************
