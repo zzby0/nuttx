@@ -345,6 +345,7 @@ void devfreq_procfs_initialize(void);
 
 FAR struct devfreq_governor_s *devfreq_performance(void);
 FAR struct devfreq_governor_s *devfreq_powersave(void);
+FAR struct devfreq_governor_s *devfreq_ondemand(void);
 
 #undef EXTERN
 #if defined(__cplusplus)
